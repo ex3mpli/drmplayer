@@ -11,10 +11,7 @@ A lightweight, modern, and responsive HTML5 video player built with [Shaka Playe
 <img src="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/screenshot2.png" alt="Website Screenshot" />
 ---
 
-<a href="drmplayer.ex3mpli.workers.dev" target="_blank">
-  <img src="" alt="Live Demo">
-</a>
-
+<a href="https://drmplayer.ex3mpli.workers.dev/" target="_blank">Demo</a>
 ---
 
 ##  Features
