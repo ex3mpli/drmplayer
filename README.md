@@ -5,12 +5,10 @@ A lightweight, modern, and responsive HTML5 video player built with [Shaka Playe
 ## Screenshots
 
 **Main Player Interface**
-*(Save the first generated image as `screenshot1.png` and insert it here)*
-[ Screenshot 1: Main Player UI with glassmorphism controls and URL input ]
+<img src="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/screenshot2.png" alt="Website Screenshot" />
 
 **Advanced Settings Panel**
-*(Save the second generated image as `screenshot2.png` and insert it here)*
-[ Screenshot 2: Expanded Advanced Settings showing DRM, User-Agent, and Referer inputs ]
+<img src="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/screenshot1.png" alt="Website Screenshot" />
 
 ##  Features
 
