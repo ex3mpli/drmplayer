@@ -1,0 +1,933 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>DRM Player</title>
+  <link rel="icon" type="image/png" href="https://bisdaktv.fun/favicon.png" />
+  <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.7.0/dist/shaka-player.compiled.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --danger: #ef4444;
+      --bg-glass: rgba(10, 10, 15, 0.92);
+      --border-glass: rgba(255, 255, 255, 0.1);
+      --text-main: #ffffff;
+      --text-muted: #9ca3af;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-main);
+    }
+
+    .player-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .video-stage {
+      flex: 1;
+      position: relative;
+      background: #000;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Overlays */
+    .overlay-layer {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .top-bar {
+      padding: 20px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      transition: opacity 0.3s;
+    }
+    
+    .stream-badge {
+      background: rgba(220, 38, 38, 0.9);
+      backdrop-filter: blur(4px);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stream-badge::before { content:''; width:8px; height:8px; background:white; border-radius:50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%{opacity:1} 50%{opacity:0.4} 100%{opacity:1} }
+
+    .tech-stats {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .center-spinner {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px; height: 50px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      display: none;
+      z-index: 5;
+    }
+    @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    .big-play-btn {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      width: 80px; height: 80px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: auto;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .big-play-btn.visible { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .big-play-btn:hover { background: rgba(255,255,255,0.2); transform: translate(-50%, -50%) scale(1.1); }
+    .big-play-btn svg { width: 32px; height: 32px; fill: white; margin-left: 4px; }
+
+    /* Controls */
+    .controls-container {
+      background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+      padding: 20px 24px 30px;
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: auto;
+    }
+    .controls-container.hidden { opacity: 0; pointer-events: none; transform: translateY(20px); }
+
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 3px;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 15px;
+    }
+    .progress-buffered {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+      background: rgba(255,255,255,0.3);
+      width: 0%;
+      border-radius: 3px;
+    }
+    .progress-filled {
+      position: absolute;
+      top: 0; left: 0; height: 100%;
+      background: var(--primary);
+      width: 0%;
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+    .progress-thumb {
+      position: absolute;
+      top: 50%; right: -6px;
+      transform: translateY(-50%) scale(0);
+      width: 14px; height: 14px;
+      background: white;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      transition: transform 0.2s;
+    }
+    .progress-container:hover .progress-thumb { transform: translateY(-50%) scale(1); }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    
+    .btn-group { display: flex; align-items: center; gap: 12px; }
+    
+    button.icon-btn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    button.icon-btn:hover { background: rgba(255,255,255,0.15); }
+    button.icon-btn:active { transform: scale(0.9); }
+    button.icon-btn svg { width: 24px; height: 24px; fill: currentColor; }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    .volume-slider { width: 80px; height: 4px; }
+    .volume-slider::-webkit-slider-runnable-track {
+      background: rgba(255,255,255,0.3);
+      height: 4px;
+      border-radius: 2px;
+    }
+    .volume-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px; width: 14px;
+      border-radius: 50%;
+      background: white;
+      margin-top: -5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+
+    select {
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      outline: none;
+      backdrop-filter: blur(4px);
+    }
+    select option {
+      background: #1a1a20;
+      color: white;
+    }
+
+    .time-display {
+      font-size: 0.85rem;
+      font-variant-numeric: tabular-nums;
+      color: #ddd;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    /* Input Panel (Always Visible) */
+    .input-panel {
+      background: var(--bg-glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border-glass);
+      padding: 16px;
+      z-index: 30;
+      transition: max-height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), padding 0.4s;
+      max-height: 80px; /* Collapsed state */
+      overflow: hidden;
+      position: relative;
+    }
+    .input-panel.expanded {
+      max-height: 600px;
+      padding-bottom: 24px;
+    }
+
+    .input-row-main {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-field-main {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: white !important;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .input-field-main:focus {
+      border-color: var(--primary);
+      background: rgba(255,255,255,0.12);
+    }
+    .input-field-main::placeholder {
+      color: rgba(255,255,255,0.4);
+    }
+
+    .action-btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: filter 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .action-btn-primary:hover { filter: brightness(1.1); }
+    .action-btn-primary:active { transform: scale(0.96); }
+
+    .toggle-icon {
+      transition: transform 0.3s ease;
+    }
+    .input-panel.expanded .toggle-icon {
+      transform: rotate(180deg);
+    }
+
+    .advanced-settings {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: grid;
+      gap: 12px;
+    }
+
+    .input-row-adv {
+      display: flex;
+      gap: 12px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted) !important;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 10px 12px;
+      border-radius: 8px;
+      color: white !important;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .input-field:focus {
+      border-color: var(--primary);
+      background: rgba(255,255,255,0.12);
+    }
+    .input-field::placeholder {
+      color: rgba(255,255,255,0.4);
+    }
+    .input-field option {
+      background: #1a1a20;
+      color: white;
+    }
+
+    .action-btn-secondary {
+      width: 100%;
+      padding: 10px;
+      background: rgba(255,255,255,0.08);
+      color: white;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+    .action-btn-secondary:hover { background: rgba(255,255,255,0.15); }
+
+    /* Toast Notification */
+    .toast {
+      position: absolute;
+      top: 20px; left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: rgba(30, 30, 35, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 12px 24px;
+      border-radius: 30px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 100;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.9rem;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--danger); color: #fca5a5; }
+
+    /* Double Tap Seek Animation */
+    .seek-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .seek-left { left: 20%; }
+    .seek-right { right: 20%; }
+    .seek-active { animation: fadeScale 0.6s ease-out; }
+    @keyframes fadeScale { 0%{opacity:0; transform:translateY(-50%) scale(0.8)} 50%{opacity:1; transform:translateY(-50%) scale(1.1)} 100%{opacity:0; transform:translateY(-50%) scale(1)} }
+
+    @media (max-width: 600px) {
+      .input-row-adv { flex-direction: column; gap: 12px; }
+      .time-display { font-size: 0.75rem; min-width: 70px; }
+      .volume-slider { width: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="player-wrapper">
+  <div class="video-stage" id="videoStage">
+    <video id="video" playsinline crossorigin="anonymous"></video>
+    
+    <div class="center-spinner" id="spinner"></div>
+    
+    <div class="big-play-btn" id="bigPlayBtn">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+
+    <div class="seek-indicator seek-left" id="seekLeftInd">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+      <div style="text-align:center; font-size:0.8rem; margin-top:4px">10s</div>
+    </div>
+    <div class="seek-indicator seek-right" id="seekRightInd">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+      <div style="text-align:center; font-size:0.8rem; margin-top:4px">10s</div>
+    </div>
+
+    <div class="overlay-layer" id="overlayLayer">
+      <div class="top-bar" id="topBar">
+        <div class="stream-badge" id="liveBadge" style="display:none">LIVE</div>
+        <div class="tech-stats" id="techStats">Ready</div>
+      </div>
+
+      <div class="controls-container" id="controls">
+        <div class="progress-container" id="progressBar">
+          <div class="progress-buffered" id="bufferedBar"></div>
+          <div class="progress-filled" id="filledBar">
+            <div class="progress-thumb"></div>
+          </div>
+        </div>
+
+        <div class="controls-row">
+          <div class="btn-group">
+            <button class="icon-btn" id="playPauseBtn" title="Play/Pause (Space)">
+              <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            
+            <button class="icon-btn" id="muteBtn" title="Mute (M)">
+              <svg id="iconVolOn" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+              <svg id="iconVolOff" viewBox="0 0 24 24" style="display:none"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4L9.91 6.09 12 8.18V4z"/></svg>
+            </button>
+            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="1" step="0.05" value="1">
+          </div>
+
+          <div class="time-display">
+            <span id="currTime">0:00</span> / <span id="durTime">0:00</span>
+          </div>
+
+          <div class="btn-group">
+            <select id="qualitySelect" style="display:none"><option value="">Auto Quality</option></select>
+            <button class="icon-btn" id="pipBtn" title="Picture in Picture">
+              <svg viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+            </button>
+            <button class="icon-btn" id="fsBtn" title="Fullscreen (F)">
+              <svg id="iconFsEnter" viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+              <svg id="iconFsExit" viewBox="0 0 24 24" style="display:none"><path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Always Visible Input Panel -->
+  <div class="input-panel" id="inputPanel">
+    <div class="input-row-main">
+      <input type="text" id="urlInput" class="input-field-main" placeholder="Enter .mpd or .m3u8 URL...">
+      <button class="action-btn-primary" id="loadBtn">Play</button>
+      <button class="icon-btn" id="toggleAdvanced" title="Advanced Settings">
+        <svg class="toggle-icon" width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+    
+    <div class="advanced-settings" id="advancedSettings">
+      <div class="input-group">
+        <label>DRM Type</label>
+        <select id="drmType" class="input-field">
+          <option value="none">None</option>
+          <option value="clearkey">ClearKey</option>
+          <option value="widevine">Widevine</option>
+        </select>
+      </div>
+
+      <div class="input-group" id="ckGroup" style="display:none">
+        <label>ClearKey (Multiple Key Supported)</label>
+        <textarea id="ckInput" class="input-field" rows="2" placeholder="kid1:key1&#10;kid2:key2"></textarea>
+      </div>
+
+      <div class="input-group" id="wwGroup" style="display:none">
+        <label>Widevine License URL</label>
+        <input type="text" id="wwUrl" class="input-field" placeholder="https://license.server.com/widevine">
+      </div>
+
+      <div class="input-row-adv">
+        <div class="input-group">
+          <label>User-Agent</label>
+          <input type="text" id="uaInput" class="input-field" placeholder="Mozilla/5.0...">
+        </div>
+        <div class="input-group">
+          <label>Referer</label>
+          <input type="text" id="refInput" class="input-field" placeholder="https://...">
+        </div>
+      </div>
+
+      <button class="action-btn-secondary" id="saveDefaultsBtn">Save as Default</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+    <span id="toastMsg">Notification</span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    shaka.polyfill.installAll();
+    const video = document.getElementById('video');
+    let player = null;
+    
+    const els = {
+      playPause: document.getElementById('playPauseBtn'),
+      bigPlay: document.getElementById('bigPlayBtn'),
+      iconPlay: document.getElementById('iconPlay'),
+      iconPause: document.getElementById('iconPause'),
+      mute: document.getElementById('muteBtn'),
+      iconVolOn: document.getElementById('iconVolOn'),
+      iconVolOff: document.getElementById('iconVolOff'),
+      volSlider: document.getElementById('volumeSlider'),
+      progressBar: document.getElementById('progressBar'),
+      filledBar: document.getElementById('filledBar'),
+      bufferedBar: document.getElementById('bufferedBar'),
+      currTime: document.getElementById('currTime'),
+      durTime: document.getElementById('durTime'),
+      liveBadge: document.getElementById('liveBadge'),
+      quality: document.getElementById('qualitySelect'),
+      fsBtn: document.getElementById('fsBtn'),
+      iconFsEnter: document.getElementById('iconFsEnter'),
+      iconFsExit: document.getElementById('iconFsExit'),
+      pipBtn: document.getElementById('pipBtn'),
+      loadBtn: document.getElementById('loadBtn'),
+      saveDefaults: document.getElementById('saveDefaultsBtn'),
+      inputPanel: document.getElementById('inputPanel'),
+      toggleAdvanced: document.getElementById('toggleAdvanced'),
+      inputs: {
+        url: document.getElementById('urlInput'),
+        drm: document.getElementById('drmType'),
+        ck: document.getElementById('ckInput'),
+        ww: document.getElementById('wwUrl'),
+        ua: document.getElementById('uaInput'),
+        ref: document.getElementById('refInput')
+      },
+      toast: document.getElementById('toast'),
+      toastMsg: document.getElementById('toastMsg'),
+      spinner: document.getElementById('spinner'),
+      techStats: document.getElementById('techStats'),
+      stage: document.getElementById('videoStage'),
+      controls: document.getElementById('controls'),
+      seekLeft: document.getElementById('seekLeftInd'),
+      seekRight: document.getElementById('seekRightInd')
+    };
+
+    let hideControlsTimer;
+    let isLive = false;
+    let updateInterval;
+
+    const fmt = (s) => {
+      if(!isFinite(s)) return "0:00";
+      const m = Math.floor(s/60);
+      const sec = Math.floor(s%60);
+      return `${m}:${sec.toString().padStart(2,'0')}`;
+    };
+
+    const showToast = (msg, type='info') => {
+      els.toastMsg.textContent = msg;
+      els.toast.className = `toast show ${type}`;
+      setTimeout(() => els.toast.classList.remove('show'), 3000);
+    };
+
+    const saveSettings = () => {
+      const data = {
+        url: els.inputs.url.value,
+        ua: els.inputs.ua.value,
+        ref: els.inputs.ref.value,
+        vol: els.volSlider.value
+      };
+      localStorage.setItem('bisdak_pro_config', JSON.stringify(data));
+      showToast('Defaults saved successfully!');
+    };
+
+    const loadSettings = () => {
+      const saved = localStorage.getItem('bisdak_pro_config');
+      if(saved) {
+        const data = JSON.parse(saved);
+        els.inputs.url.value = data.url || '';
+        els.inputs.ua.value = data.ua || '';
+        els.inputs.ref.value = data.ref || '';
+        if(data.vol) {
+          video.volume = data.vol;
+          els.volSlider.value = data.vol;
+        }
+      }
+    };
+
+    async function initPlayer() {
+      if(player) {
+        await player.destroy();
+      }
+      player = new shaka.Player();
+      await player.attach(video);
+      
+      player.addEventListener('error', (e) => {
+        console.error(e);
+        showToast('Error: ' + (e.detail ? e.detail.message : 'Unknown'), 'error');
+        els.spinner.style.display = 'none';
+      });
+
+      player.addEventListener('loading', () => {
+        els.spinner.style.display = 'block';
+        els.bigPlay.classList.remove('visible');
+      });
+
+      player.addEventListener('loaded', () => {
+        els.spinner.style.display = 'none';
+        updateTracks();
+        updateStats();
+        if(video.paused) els.bigPlay.classList.add('visible');
+      });
+
+      player.addEventListener('adaptation', updateStats);
+      
+      clearInterval(updateInterval);
+      updateInterval = setInterval(updateUI, 500);
+    }
+
+    async function loadStream() {
+      const url = els.inputs.url.value.trim();
+      if(!url) return showToast('Please enter a valid URL', 'error');
+
+      await initPlayer();
+
+      const config = {};
+      const drmType = els.inputs.drm.value;
+      
+      if(drmType === 'clearkey') {
+        const keys = {};
+        els.inputs.ck.value.split('\n').forEach(line => {
+          const [k, v] = line.split(':');
+          if(k && v) keys[k.trim()] = v.trim();
+        });
+        config.drm = { clearKeys: keys };
+      } else if (drmType === 'widevine') {
+        const licUrl = els.inputs.ww.value.trim();
+        if(licUrl) config.drm = { servers: { 'com.widevine.alpha': licUrl } };
+      }
+
+      const ua = els.inputs.ua.value.trim();
+      const ref = els.inputs.ref.value.trim();
+      if(ua || ref) {
+        player.getNetworkingEngine().registerRequestFilter((type, request) => {
+          if(ua) request.headers['User-Agent'] = ua;
+          if(ref) request.headers['Referer'] = ref;
+        });
+      }
+
+      player.configure(config);
+
+      try {
+        await player.load(url);
+        showToast('Stream loaded successfully');
+        video.play().catch(()=>{});
+      } catch(err) {
+        showToast('Load Failed: ' + err.message, 'error');
+      }
+    }
+
+    function updateTracks() {
+      if(!player) return;
+      const variants = player.getVariantTracks();
+      els.quality.innerHTML = '<option value="">Auto Quality</option>';
+      
+      const heights = new Set();
+      variants.forEach(v => {
+        if(v.height && !heights.has(v.height)) {
+          heights.add(v.height);
+          const opt = document.createElement('option');
+          opt.value = v.height;
+          opt.text = `${v.height}p`;
+          els.quality.appendChild(opt);
+        }
+      });
+      
+      els.quality.style.display = heights.size > 1 ? 'block' : 'none';
+      
+      els.quality.onchange = (e) => {
+        const h = parseInt(e.target.value);
+        if(!h) {
+          player.configure({ abrEnabled: true });
+        } else {
+          player.configure({ abrEnabled: false });
+          const tracks = player.getVariantTracks();
+          const target = tracks.find(t => t.height === h);
+          if(target) player.selectVariantTrack(target, true);
+        }
+      };
+    }
+
+    function updateStats() {
+      if(!player || !video) return;
+      const stats = player.getStats();
+      const res = `${video.videoWidth || '?'}x${video.videoHeight || '?'}`;
+      const bw = stats.streamBandwidth ? (stats.streamBandwidth/1000000).toFixed(1) + ' Mbps' : '--';
+      els.techStats.textContent = `${res} | ${bw} | Buffer: ${(stats.bufferLevel||0).toFixed(1)}s`;
+    }
+
+    function updateUI() {
+      if(!video) return;
+      
+      const cur = video.currentTime;
+      const dur = video.duration;
+      isLive = player ? player.isLive() : false;
+
+      els.currTime.textContent = fmt(cur);
+      els.durTime.textContent = isLive ? 'LIVE' : fmt(dur);
+      els.liveBadge.style.display = isLive ? 'flex' : 'none';
+
+      if(!isLive && dur) {
+        const pct = (cur/dur)*100;
+        els.filledBar.style.width = pct + '%';
+        
+        if(video.buffered.length > 0) {
+          const buffEnd = video.buffered.end(video.buffered.length - 1);
+          els.bufferedBar.style.width = (buffEnd/dur)*100 + '%';
+        }
+      } else {
+        els.filledBar.style.width = '100%';
+      }
+
+      if(video.paused) {
+        els.iconPlay.style.display = 'block';
+        els.iconPause.style.display = 'none';
+        els.bigPlay.classList.add('visible');
+      } else {
+        els.iconPlay.style.display = 'none';
+        els.iconPause.style.display = 'block';
+        els.bigPlay.classList.remove('visible');
+      }
+
+      if(video.muted || video.volume === 0) {
+        els.iconVolOn.style.display = 'none';
+        els.iconVolOff.style.display = 'block';
+      } else {
+        els.iconVolOn.style.display = 'block';
+        els.iconVolOff.style.display = 'none';
+      }
+      
+      if(document.fullscreenElement) {
+        els.iconFsEnter.style.display = 'none';
+        els.iconFsExit.style.display = 'block';
+      } else {
+        els.iconFsEnter.style.display = 'block';
+        els.iconFsExit.style.display = 'none';
+      }
+    }
+
+    const togglePlay = () => {
+      if(video.paused) video.play();
+      else video.pause();
+      resetControlsTimer();
+    };
+
+    const resetControlsTimer = () => {
+      els.controls.classList.remove('hidden');
+      clearTimeout(hideControlsTimer);
+      if(!video.paused) {
+        hideControlsTimer = setTimeout(() => {
+          els.controls.classList.add('hidden');
+        }, 3000);
+      }
+    };
+
+    els.stage.addEventListener('mousemove', resetControlsTimer);
+    els.stage.addEventListener('touchstart', resetControlsTimer);
+    
+    let lastTap = 0;
+    els.stage.addEventListener('click', (e) => {
+      if(e.target.closest('button') || e.target.closest('select') || e.target.closest('.input-panel')) return;
+      
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      
+      if (tapLength < 300 && tapLength > 0) {
+        const rect = els.stage.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const width = rect.width;
+        
+        if(x < width / 3) {
+          video.currentTime = Math.max(0, video.currentTime - 10);
+          els.seekLeft.classList.add('seek-active');
+          setTimeout(()=>els.seekLeft.classList.remove('seek-active'), 600);
+        } else if (x > width * 2/3) {
+          video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+          els.seekRight.classList.add('seek-active');
+          setTimeout(()=>els.seekRight.classList.remove('seek-active'), 600);
+        } else {
+          togglePlay();
+        }
+      } else {
+        if(els.controls.classList.contains('hidden')) resetControlsTimer();
+        else els.controls.classList.add('hidden');
+      }
+      lastTap = currentTime;
+    });
+
+    let isDragging = false;
+    els.progressBar.addEventListener('mousedown', (e) => { isDragging = true; seek(e); });
+    document.addEventListener('mousemove', (e) => { if(isDragging) seek(e); });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+    
+    els.progressBar.addEventListener('touchstart', (e) => { isDragging = true; seek(e.touches[0]); });
+    document.addEventListener('touchmove', (e) => { if(isDragging) seek(e.touches[0]); });
+    document.addEventListener('touchend', () => { isDragging = false; });
+
+    function seek(e) {
+      if(!video.duration || isLive) return;
+      const rect = els.progressBar.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      const clamped = Math.max(0, Math.min(1, pos));
+      video.currentTime = clamped * video.duration;
+      els.filledBar.style.width = (clamped*100) + '%';
+    }
+
+    els.playPause.onclick = togglePlay;
+    els.bigPlay.onclick = togglePlay;
+    
+    els.mute.onclick = () => {
+      video.muted = !video.muted;
+      els.volSlider.value = video.muted ? 0 : video.volume;
+    };
+    
+    els.volSlider.oninput = (e) => {
+      video.volume = e.target.value;
+      video.muted = false;
+    };
+
+    els.fsBtn.onclick = () => {
+      if(!document.fullscreenElement) els.stage.requestFullscreen();
+      else document.exitFullscreen();
+    };
+
+    els.pipBtn.onclick = async () => {
+      if(document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    };
+
+    els.toggleAdvanced.onclick = () => {
+      els.inputPanel.classList.toggle('expanded');
+    };
+
+    els.inputs.drm.onchange = (e) => {
+      document.getElementById('ckGroup').style.display = e.target.value==='clearkey'?'block':'none';
+      document.getElementById('wwGroup').style.display = e.target.value==='widevine'?'block':'none';
+    };
+
+    els.loadBtn.onclick = loadStream;
+    els.saveDefaults.onclick = saveSettings;
+
+    document.addEventListener('keydown', (e) => {
+      if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      
+      switch(e.key.toLowerCase()) {
+        case ' ':
+        case 'k':
+          e.preventDefault();
+          togglePlay();
+          break;
+        case 'f':
+          els.fsBtn.click();
+          break;
+        case 'm':
+          els.mute.click();
+          break;
+        case 'arrowleft':
+          video.currentTime -= 5;
+          break;
+        case 'arrowright':
+          video.currentTime += 5;
+          break;
+        case 'arrowup':
+          e.preventDefault();
+          video.volume = Math.min(1, video.volume + 0.1);
+          els.volSlider.value = video.volume;
+          break;
+        case 'arrowdown':
+          e.preventDefault();
+          video.volume = Math.max(0, video.volume - 0.1);
+          els.volSlider.value = video.volume;
+          break;
+      }
+    });
+
+    loadSettings();
+    els.volSlider.value = video.volume;
+
+  })();
+</script>
+</body>
+</html>
