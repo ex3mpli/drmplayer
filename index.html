@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>DRM Player v1.0.0</title>
+  <title>DRM Player</title>
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/icon.png" />
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@5.2.8/dist/shaka-player.compiled.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -393,6 +393,7 @@
       font-size: 0.9rem;
       outline: none;
       transition: border-color 0.2s, background 0.4s ease, color 0.4s ease;
+      resize: none; /* Prevents textarea from being manually resized */
     }
     .input-field:focus {
       border-color: var(--primary);
