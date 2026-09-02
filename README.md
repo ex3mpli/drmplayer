@@ -3,12 +3,12 @@
 A lightweight, modern, and responsive HTML5 video player built with [Shaka Player](https://github.com/shaka-project/shaka-player). Designed for seamless playback of HLS (`.m3u8`), DASH (`.mpd`), and DRM-protected streams directly in your web browser.
 
 ## Screenshots
+<img src="https://ex3mpli
+  github.io/drmplayer/mobile-ss1.jpg" alt="Website Screenshot" />
 
-**Main Player Interface**
-<img src="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/screenshot1.png" alt="Website Screenshot" />
+<img src="https://ex3mpli
+  github.io/drmplayer/mobile-ss2.jpg" alt="Website Screenshot" />
 
-**Advanced Settings Panel**
-<img src="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/screenshot2.png" alt="Website Screenshot" />
 ---
 
 <a href="https://ex3mpli.github.io/drmplayer/index.html" target="_blank">Demo</a>
