@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>DRM Player</title>
+  <title>DRMPlayer</title>
   <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/ex3mpli/drmplayer/refs/heads/main/icon.png" />
   <script src="https://cdn.jsdelivr.net/npm/shaka-player@5.2.8/dist/shaka-player.compiled.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -656,19 +656,19 @@
       <div class="input-group">
         <label>DRM TYPE</label>
         <select id="drmType" class="input-field">
-          <option value="none">NONE</option>
-          <option value="clearkey">CLEARKEY</option>
-          <option value="widevine">WIDEVINE</option>
+          <option value="none">None</option>
+          <option value="clearkey">Clearkey</option>
+          <option value="widevine">Widevine</option>
         </select>
       </div>
 
       <div class="input-group" id="ckGroup" style="display:none">
-        <label>CLEARKEY</label>
+        <label>Clearkey</label>
         <textarea id="ckInput" class="input-field" rows="2" placeholder="kid1:key1&#10;kid2:key2"></textarea>
       </div>
 
       <div class="input-group" id="wwGroup" style="display:none">
-        <label>WIDEVINE LICENSE URL</label>
+        <label>Widevine License URL</label>
         <input type="text" id="wwUrl" class="input-field" placeholder="https://license.server.com/widevine">
       </div>
 
@@ -683,7 +683,7 @@
         </div>
       </div>
 
-      <button class="action-btn-secondary" id="saveDefaultsBtn">SAVE DEFAULT</button>
+      <button class="action-btn-secondary" id="saveDefaultsBtn">Save Default</button>
     </div>
   </div>
 
