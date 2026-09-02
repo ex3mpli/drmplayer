@@ -1,4 +1,4 @@
-# DRMPlayer
+# DRMPlayer v1.0.0
 
 A lightweight, modern, and responsive HTML5 video player built with [Shaka Player](https://github.com/shaka-project/shaka-player). Designed for seamless playback of HLS (`.m3u8`), DASH (`.mpd`), and DRM-protected streams directly in your web browser.
 
