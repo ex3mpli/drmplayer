@@ -10,7 +10,6 @@
   
   <style>
     :root {
-      /* Light Mode Gray Scheme */
       --bg-gradient: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
       --bg-glass: rgba(255, 255, 255, 0.65);
       --border-glass: rgba(0, 0, 0, 0.08);
@@ -26,7 +25,6 @@
     }
 
     [data-theme="dark"] {
-      /* Dark Mode Gray Scheme */
       --bg-gradient: linear-gradient(135deg, #18181b 0%, #27272a 100%);
       --bg-glass: rgba(39, 39, 42, 0.65);
       --border-glass: rgba(255, 255, 255, 0.08);
@@ -46,13 +44,16 @@
       padding: 0; 
       box-sizing: border-box; 
       -webkit-tap-highlight-color: transparent; 
-      border-radius: 0 !important; /* Enforce 0 border radius globally */
+      border-radius: 0 !important;
     }
     
-    body {
-      width: 100vw;
-      height: 100vh;
+    html, body {
+      width: 100%;
+      height: 100%;
       overflow: hidden;
+    }
+
+    body {
       background: var(--bg-gradient);
       font-family: 'Nunito', sans-serif;
       color: var(--text-main);
@@ -66,12 +67,15 @@
       position: relative;
       width: 95%;
       height: 95%;
+      max-width: 100%;
+      max-height: 100%;
       display: flex;
       flex-direction: column;
       background: var(--stage-bg);
       border: 1px solid var(--border-glass);
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
       transition: all 0.4s ease;
+      overflow: hidden;
     }
 
     .video-stage {
@@ -82,6 +86,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      min-height: 0;
     }
 
     video {
@@ -90,7 +95,6 @@
       object-fit: contain;
     }
 
-    /* Overlays */
     .overlay-layer {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -186,7 +190,6 @@
     .big-play-btn:hover { background: var(--primary); border-color: var(--primary); }
     .big-play-btn svg { width: 32px; height: 32px; fill: var(--text-main); margin-left: 4px; transition: fill 0.4s ease; }
 
-    /* Controls */
     .controls-container {
       background: linear-gradient(to top, var(--control-bg), transparent);
       padding: 20px 24px 30px;
@@ -294,40 +297,38 @@
       transition: color 0.4s ease;
     }
 
-    /* Input Panel */
+    /* Input Panel - Restructured so main row is never clipped */
     .input-panel {
       background: var(--bg-glass);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border-glass);
-      padding: 16px;
+      padding: 12px 16px;
       z-index: 30;
-      transition: max-height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), padding 0.4s, background 0.4s ease, border-color 0.4s ease;
-      max-height: 80px;
-      overflow: hidden;
+      transition: background 0.4s ease, border-color 0.4s ease;
       position: relative;
-    }
-    .input-panel.expanded {
-      max-height: 600px;
-      padding-bottom: 24px;
+      flex-shrink: 0;
     }
 
     .input-row-main {
       display: flex;
       gap: 10px;
       align-items: center;
+      width: 100%;
     }
 
     .input-field-main {
       flex: 1;
+      min-width: 0;
       background: var(--input-bg);
       border: 1px solid var(--border-glass);
-      padding: 12px 16px;
+      padding: 10px 14px;
       color: var(--text-main) !important;
       font-size: 0.95rem;
       outline: none;
       transition: border-color 0.2s, background 0.4s ease, color 0.4s ease;
       font-family: 'Nunito', sans-serif;
+      height: 44px;
     }
     .input-field-main:focus {
       border-color: var(--primary);
@@ -341,13 +342,15 @@
       background: var(--primary);
       color: #fff;
       border: none;
-      padding: 12px 20px;
+      padding: 0 20px;
+      height: 44px;
       font-weight: 600;
       font-size: 0.95rem;
       cursor: pointer;
       transition: filter 0.2s, transform 0.1s, background 0.4s ease;
       white-space: nowrap;
       font-family: 'Nunito', sans-serif;
+      flex-shrink: 0;
     }
     .action-btn-primary:hover { filter: brightness(1.1); }
     .action-btn-primary:active { transform: scale(0.96); }
@@ -355,18 +358,34 @@
     .toggle-icon {
       transition: transform 0.3s ease, fill 0.4s ease;
       fill: var(--text-main);
+      flex-shrink: 0;
     }
     .input-panel.expanded .toggle-icon {
       transform: rotate(180deg);
     }
 
+    /* Advanced settings - collapsed by default using max-height on itself */
     .advanced-settings {
+      display: grid;
+      gap: 12px;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0px solid transparent;
+      transition: max-height 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                  opacity 0.3s ease, 
+                  margin-top 0.4s ease, 
+                  padding-top 0.4s ease;
+    }
+
+    .input-panel.expanded .advanced-settings {
+      max-height: 800px;
+      opacity: 1;
       margin-top: 16px;
       padding-top: 16px;
       border-top: 1px solid var(--border-glass);
-      display: grid;
-      gap: 12px;
-      transition: border-color 0.4s ease;
     }
 
     .input-row-adv {
@@ -393,7 +412,7 @@
       font-size: 0.9rem;
       outline: none;
       transition: border-color 0.2s, background 0.4s ease, color 0.4s ease;
-      resize: none; /* Prevents textarea from being manually resized */
+      resize: none;
     }
     .input-field:focus {
       border-color: var(--primary);
@@ -408,7 +427,7 @@
 
     .action-btn-secondary {
       width: 100%;
-      padding: 10px;
+      padding: 12px;
       background: var(--input-bg);
       color: var(--text-main);
       border: 1px solid var(--border-glass);
@@ -421,7 +440,6 @@
     }
     .action-btn-secondary:hover { background: rgba(255,255,255,0.1); }
 
-    /* Toast Notification */
     .toast {
       position: absolute;
       top: 20px; left: 50%;
@@ -439,11 +457,11 @@
       font-size: 0.9rem;
       color: var(--text-main);
       pointer-events: none;
+      max-width: 90%;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
     .toast.error { border-color: var(--danger); color: var(--danger); }
 
-    /* Double Tap Seek Animation */
     .seek-indicator {
       position: absolute;
       top: 50%;
@@ -458,10 +476,93 @@
     .seek-active { animation: fadeScale 0.6s ease-out; }
     @keyframes fadeScale { 0%{opacity:0; transform:translateY(-50%) scale(0.8)} 50%{opacity:1; transform:translateY(-50%) scale(1.1)} 100%{opacity:0; transform:translateY(-50%) scale(1)} }
 
+    /* Mobile Responsive Fixes */
     @media (max-width: 600px) {
+      .player-wrapper {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .top-bar {
+        padding: 12px;
+      }
+
+      .tech-stats {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+      }
+
+      .version-badge {
+        font-size: 0.6rem;
+        padding: 3px 8px;
+      }
+
+      .input-panel {
+        padding: 10px 12px;
+      }
+
+      .input-row-main {
+        gap: 8px;
+      }
+
+      .input-field-main {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        height: 40px;
+      }
+
+      .action-btn-primary {
+        padding: 0 14px;
+        height: 40px;
+        font-size: 0.85rem;
+      }
+
+      .controls-container {
+        padding: 12px 16px 20px;
+      }
+
       .input-row-adv { flex-direction: column; gap: 12px; }
       .time-display { font-size: 0.75rem; min-width: 70px; }
       .volume-slider { width: 60px; }
+
+      .controls-row {
+        gap: 8px;
+      }
+
+      .btn-group {
+        gap: 6px;
+      }
+
+      button.icon-btn {
+        padding: 6px;
+      }
+
+      button.icon-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .big-play-btn {
+        width: 64px;
+        height: 64px;
+      }
+
+      .big-play-btn svg {
+        width: 26px;
+        height: 26px;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .input-field-main {
+        font-size: 0.8rem;
+        padding: 8px 10px;
+      }
+      .action-btn-primary {
+        padding: 0 10px;
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
@@ -542,7 +643,6 @@
     </div>
   </div>
 
-  <!-- Always Visible Input Panel -->
   <div class="input-panel" id="inputPanel">
     <div class="input-row-main">
       <input type="text" id="urlInput" class="input-field-main" placeholder="Enter .mpd or .m3u8 URL...">
@@ -587,7 +687,6 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div class="toast" id="toast">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
     <span id="toastMsg">Notification</span>
@@ -649,7 +748,6 @@
     let isLive = false;
     let updateInterval;
 
-    // Theme Management
     const applyTheme = (theme) => {
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem('player_theme', theme);
