@@ -24,7 +24,7 @@ A DASH & M3U8 player built with Shaka Player. Supports ClearKey (multiple keys),
 
 ## Usage
 
-Open `index.html` in a modern browser. Paste a DASH MPD URL and click Play. Use the playlist icon to manage saved channels.
+Open `index.html` in a modern browser. Paste a DASH or M3U8 URL and click Play. Use the playlist icon to manage saved channels.
 
 ## Shortcuts
 
