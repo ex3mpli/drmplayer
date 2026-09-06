@@ -837,35 +837,85 @@
       updateInterval = setInterval(updateUI, 500);
     }
 
+    // Check ClearKey support (for mobile Chrome)
+    async function isClearKeySupported() {
+      try {
+        const config = [{
+          initDataTypes: ['cenc'],
+          videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
+        }];
+        const access = await navigator.requestMediaKeySystemAccess('org.w3.clearkey', config);
+        return !!access;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Map HTTP status codes to readable text
+    function getHttpStatusText(code) {
+      const map = {
+        400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden',
+        404: 'Not Found', 500: 'Internal Server Error', 502: 'Bad Gateway',
+        503: 'Service Unavailable', 504: 'Gateway Timeout'
+      };
+      return map[code] || 'HTTP Error';
+    }
+
     async function loadStream() {
       const url = els.inputs.url.value.trim();
-      if(!url) return showToast('Please enter a valid URL', 'error');
+      if (!url) return showToast('Please enter a valid URL', 'error');
+
+      // Check ClearKey support if needed
+      const drmType = els.inputs.drm.value;
+      if (drmType === 'clearkey' && !(await isClearKeySupported())) {
+        showToast('ClearKey is not supported on this device/browser', 'error');
+        return;
+      }
 
       await initPlayer();
 
       const config = {};
-      const drmType = els.inputs.drm.value;
       
-      if(drmType === 'clearkey') {
+      // Mobile-friendly streaming settings
+      config.streaming = {
+        bufferingGoal: 30,
+        rebufferingGoal: 5,
+        bufferBehind: 15,
+        retryParameters: {
+          maxAttempts: 5,
+          baseDelay: 1000,
+          backoffFactor: 2,
+          fuzzFactor: 0.5,
+          timeout: 30000
+        }
+      };
+
+      if (drmType === 'clearkey') {
         const keys = {};
         els.inputs.ck.value.split('\n').forEach(line => {
           const [k, v] = line.split(':');
-          if(k && v) keys[k.trim()] = v.trim();
+          if (k && v) keys[k.trim()] = v.trim();
         });
         config.drm = { clearKeys: keys };
       } else if (drmType === 'widevine') {
         const licUrl = els.inputs.ww.value.trim();
-        if(licUrl) config.drm = { servers: { 'com.widevine.alpha': licUrl } };
+        if (licUrl) config.drm = { servers: { 'com.widevine.alpha': licUrl } };
       }
 
-      const ua = els.inputs.ua.value.trim();
-      const ref = els.inputs.ref.value.trim();
-      if(ua || ref) {
-        player.getNetworkingEngine().registerRequestFilter((type, request) => {
-          if(ua) request.headers['User-Agent'] = ua;
-          if(ref) request.headers['Referer'] = ref;
-        });
+      // Apply custom headers if provided; otherwise set a desktop UA
+      let ua = els.inputs.ua.value.trim();
+      let ref = els.inputs.ref.value.trim();
+      if (!ua) {
+        // Default desktop Chrome UA (helps bypass mobile blocks)
+        ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
       }
+      if (!ref) {
+        ref = url; // Set referer to the stream URL itself
+      }
+      player.getNetworkingEngine().registerRequestFilter((type, request) => {
+        request.headers['User-Agent'] = ua;
+        request.headers['Referer'] = ref;
+      });
 
       player.configure(config);
 
@@ -873,8 +923,14 @@
         await player.load(url);
         showToast('Stream loaded successfully');
         video.play().catch(()=>{});
-      } catch(err) {
-        showToast('Load Failed: ' + err.message, 'error');
+      } catch (err) {
+        let msg = err.message || 'Unknown error';
+        if (err.code === shaka.util.Error.Code.BAD_HTTP_STATUS && err.data && err.data[1]) {
+          const status = err.data[1];
+          msg = `HTTP ${status} – ${getHttpStatusText(status)}`;
+        }
+        showToast('Load Failed: ' + msg, 'error');
+        console.error('Full error:', err);
       }
     }
 
