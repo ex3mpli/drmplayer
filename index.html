@@ -297,6 +297,7 @@
       transition: color 0.4s ease;
     }
 
+    /* Input Panel - Restructured so main row is never clipped */
     .input-panel {
       background: var(--bg-glass);
       backdrop-filter: blur(20px);
@@ -363,6 +364,7 @@
       transform: rotate(180deg);
     }
 
+    /* Advanced settings - collapsed by default using max-height on itself */
     .advanced-settings {
       display: grid;
       gap: 12px;
@@ -418,6 +420,10 @@
     .input-field::placeholder {
       color: var(--text-muted);
     }
+    .input-field option {
+      background: var(--stage-bg);
+      color: var(--text-main);
+    }
 
     .action-btn-secondary {
       width: 100%;
@@ -455,7 +461,6 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
     .toast.error { border-color: var(--danger); color: var(--danger); }
-    .toast.warning { border-color: #f59e0b; color: #f59e0b; }
 
     .seek-indicator {
       position: absolute;
@@ -471,30 +476,93 @@
     .seek-active { animation: fadeScale 0.6s ease-out; }
     @keyframes fadeScale { 0%{opacity:0; transform:translateY(-50%) scale(0.8)} 50%{opacity:1; transform:translateY(-50%) scale(1.1)} 100%{opacity:0; transform:translateY(-50%) scale(1)} }
 
+    /* Mobile Responsive Fixes */
     @media (max-width: 600px) {
-      .player-wrapper { width: 100%; height: 100%; border: none; }
-      .top-bar { padding: 12px; }
-      .tech-stats { font-size: 0.65rem; padding: 4px 8px; }
-      .version-badge { font-size: 0.6rem; padding: 3px 8px; }
-      .input-panel { padding: 10px 12px; }
-      .input-row-main { gap: 8px; }
-      .input-field-main { font-size: 0.85rem; padding: 8px 12px; height: 40px; }
-      .action-btn-primary { padding: 0 14px; height: 40px; font-size: 0.85rem; }
-      .controls-container { padding: 12px 16px 20px; }
+      .player-wrapper {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .top-bar {
+        padding: 12px;
+      }
+
+      .tech-stats {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+      }
+
+      .version-badge {
+        font-size: 0.6rem;
+        padding: 3px 8px;
+      }
+
+      .input-panel {
+        padding: 10px 12px;
+      }
+
+      .input-row-main {
+        gap: 8px;
+      }
+
+      .input-field-main {
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        height: 40px;
+      }
+
+      .action-btn-primary {
+        padding: 0 14px;
+        height: 40px;
+        font-size: 0.85rem;
+      }
+
+      .controls-container {
+        padding: 12px 16px 20px;
+      }
+
       .input-row-adv { flex-direction: column; gap: 12px; }
       .time-display { font-size: 0.75rem; min-width: 70px; }
       .volume-slider { width: 60px; }
-      .controls-row { gap: 8px; }
-      .btn-group { gap: 6px; }
-      button.icon-btn { padding: 6px; }
-      button.icon-btn svg { width: 20px; height: 20px; }
-      .big-play-btn { width: 64px; height: 64px; }
-      .big-play-btn svg { width: 26px; height: 26px; }
+
+      .controls-row {
+        gap: 8px;
+      }
+
+      .btn-group {
+        gap: 6px;
+      }
+
+      button.icon-btn {
+        padding: 6px;
+      }
+
+      button.icon-btn svg {
+        width: 20px;
+        height: 20px;
+      }
+
+      .big-play-btn {
+        width: 64px;
+        height: 64px;
+      }
+
+      .big-play-btn svg {
+        width: 26px;
+        height: 26px;
+      }
     }
 
     @media (max-width: 380px) {
-      .input-field-main { font-size: 0.8rem; padding: 8px 10px; }
-      .action-btn-primary { padding: 0 10px; font-size: 0.8rem; }
+      .input-field-main {
+        font-size: 0.8rem;
+        padding: 8px 10px;
+      }
+      .action-btn-primary {
+        padding: 0 10px;
+        font-size: 0.8rem;
+      }
     }
   </style>
 </head>
@@ -523,7 +591,7 @@
       <div class="top-bar" id="topBar">
         <div class="top-bar-left">
           <div class="stream-badge" id="liveBadge" style="display:none">LIVE</div>
-          <div class="version-badge">v1.0.1</div>
+          <div class="version-badge">v1.0.0</div>
         </div>
         <div style="display:flex; align-items:center; gap:12px;">
           <div class="tech-stats" id="techStats">Ready</div>
@@ -577,7 +645,7 @@
 
   <div class="input-panel" id="inputPanel">
     <div class="input-row-main">
-      <input type="text" id="urlInput" class="input-field-main" placeholder="MPD/M3U8 URL">
+      <input type="text" id="urlInput" class="input-field-main" placeholder="URL">
       <button class="action-btn-primary" id="loadBtn">Play</button>
       <button class="icon-btn" id="toggleAdvanced" title="Advanced Settings">
         <svg class="toggle-icon" width="24" height="24" viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
@@ -595,8 +663,8 @@
       </div>
 
       <div class="input-group" id="ckGroup" style="display:none">
-        <label>Clearkey (kid:key per line, hex or base64)</label>
-        <textarea id="ckInput" class="input-field" rows="2" placeholder="1ece3ecb41699e855c6dc9a283908210:ba08be767e1a5e89777e68a6998a8c19"></textarea>
+        <label>Clearkey</label>
+        <textarea id="ckInput" class="input-field" rows="2" placeholder="kid1:key1&#10;kid2:key2"></textarea>
       </div>
 
       <div class="input-group" id="wwGroup" style="display:none">
@@ -606,12 +674,12 @@
 
       <div class="input-row-adv">
         <div class="input-group">
-          <label>User-Agent <span style="font-weight:400; opacity:0.7; font-size:0.7rem;">(Blocked by standard browsers)</span></label>
-          <input type="text" id="uaInput" class="input-field" placeholder="Mozilla/5.0...">
+          <label>User-Agent</label>
+          <input type="text" id="uaInput" class="input-field" placeholder="">
         </div>
         <div class="input-group">
           <label>Referer</label>
-          <input type="text" id="refInput" class="input-field" placeholder="https://example.com">
+          <input type="text" id="refInput" class="input-field" placeholder="">
         </div>
       </div>
 
@@ -710,7 +778,7 @@
     const showToast = (msg, type='info') => {
       els.toastMsg.textContent = msg;
       els.toast.className = `toast show ${type}`;
-      setTimeout(() => els.toast.classList.remove('show'), 4000);
+      setTimeout(() => els.toast.classList.remove('show'), 3000);
     };
 
     const saveSettings = () => {
@@ -746,7 +814,7 @@
       await player.attach(video);
       
       player.addEventListener('error', (e) => {
-        console.error('Shaka Error:', e);
+        console.error(e);
         showToast('Error: ' + (e.detail ? e.detail.message : 'Unknown'), 'error');
         els.spinner.style.display = 'none';
       });
@@ -781,47 +849,21 @@
       if(drmType === 'clearkey') {
         const keys = {};
         els.inputs.ck.value.split('\n').forEach(line => {
-          const cleanLine = line.trim();
-          if(!cleanLine || cleanLine.startsWith('#')) return;
-          const [k, v] = cleanLine.split(':');
-          if(k && v) {
-            // Strip '0x' prefix if present, Shaka accepts hex or base64url
-            const kid = k.trim().replace(/^0x/i, '');
-            const key = v.trim().replace(/^0x/i, '');
-            keys[kid] = key;
-          }
+          const [k, v] = line.split(':');
+          if(k && v) keys[k.trim()] = v.trim();
         });
         config.drm = { clearKeys: keys };
       } else if (drmType === 'widevine') {
         const licUrl = els.inputs.ww.value.trim();
-        if(licUrl) {
-          config.drm = { servers: { 'com.widevine.alpha': licUrl } };
-        }
+        if(licUrl) config.drm = { servers: { 'com.widevine.alpha': licUrl } };
       }
 
       const ua = els.inputs.ua.value.trim();
       const ref = els.inputs.ref.value.trim();
-      
       if(ua || ref) {
-        console.warn('⚠️ Browser Limitation: Standard web browsers block JavaScript from setting the "User-Agent" header. If this is running in a standard browser, the server may still reject the request. Consider using a backend proxy or a custom WebView environment.');
-        showToast('Note: Browser may block custom User-Agent', 'warning');
-        
         player.getNetworkingEngine().registerRequestFilter((type, request) => {
-          if(ua) {
-            // Attempt to set User-Agent (will be silently stripped by standard browsers)
-            request.headers['User-Agent'] = ua;
-            // Fallback headers that some CDNs/servers accept as a workaround
-            request.headers['X-User-Agent'] = ua;
-            request.headers['X-Original-User-Agent'] = ua;
-          }
-          if(ref) {
-            request.headers['Referer'] = ref;
-            request.headers['X-Referer'] = ref;
-            // Some CDNs also check the Origin header
-            if (!request.headers['Origin']) {
-              request.headers['Origin'] = ref;
-            }
-          }
+          if(ua) request.headers['User-Agent'] = ua;
+          if(ref) request.headers['Referer'] = ref;
         });
       }
 
@@ -833,7 +875,6 @@
         video.play().catch(()=>{});
       } catch(err) {
         showToast('Load Failed: ' + err.message, 'error');
-        console.error('Load Error:', err);
       }
     }
 
