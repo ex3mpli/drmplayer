@@ -819,7 +819,7 @@
       <div class="top-bar" id="topBar">
         <div class="top-bar-left">
           <div class="stream-badge" id="liveBadge" style="display:none">LIVE</div>
-          <div class="version-badge">v0.0.2</div>
+          <div class="version-badge">v0.0.3</div>
           <button class="text-btn" id="aboutBtn" title="About">About</button>
           <button class="icon-btn" id="playlistBtn" title="Playlist">
             <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
@@ -1095,7 +1095,7 @@
 
     // ---------- About ----------
     els.aboutBtn.addEventListener('click', () => {
-      showToast('DRMPlayer v0.0.2 – Shaka Player based DASH & M3U8 Player', 'info');
+      showToast('DRMPlayer v0.0.3 – Shaka Player based DASH & M3U8 Player', 'info');
     });
 
     // ---------- Utility ----------
@@ -1114,12 +1114,22 @@
     // ---------- Playlist Management ----------
     let playlist = JSON.parse(localStorage.getItem('drmplayer_playlist') || '[]');
 
+    // Sort playlist alphabetically by name (case-insensitive)
+    function sortPlaylist() {
+      playlist.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    }
+
+    // Sort initially after loading
+    sortPlaylist();
+
     function savePlaylist() {
+      sortPlaylist(); // Ensure sorted before saving
       localStorage.setItem('drmplayer_playlist', JSON.stringify(playlist));
       renderPlaylistModal();
     }
 
     function renderPlaylistModal() {
+      sortPlaylist(); // Ensure sorted when rendering
       els.playlistListContainer.innerHTML = '';
       if (playlist.length === 0) {
         els.playlistListContainer.innerHTML = '<div style="text-align:center; color:var(--text-muted); padding:20px;">No saved channels</div>';
