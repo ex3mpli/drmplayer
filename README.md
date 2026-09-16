@@ -2,7 +2,7 @@
 
 A DASH & M3U8 player built with Shaka Player. Supports ClearKey (multiple keys), Widevine, playlists, themes, and keyboard shortcuts.
 
-![Version](https://img.shields.io/badge/version-0.0.2-blue)
+![Version](https://img.shields.io/badge/version-0.0.3-blue)
 
 ## Demo
 
