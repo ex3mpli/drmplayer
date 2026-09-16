@@ -10,11 +10,12 @@ A DASH & M3U8 player built with Shaka Player. Supports ClearKey (multiple keys),
 
 ## Features
 
-- DASH & M3U8
+- MPD (Clearkey Supported) & M3U8
 - Playlist Manager
 - Light & Dark Theme
 - Keyboard Shortcuts
 - PiP | Fullscreen | Volume Controls
+- Custom User-Agent & Referer
 
 ## Screenshots
 
